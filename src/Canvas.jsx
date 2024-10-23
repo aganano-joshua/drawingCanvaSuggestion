@@ -8,22 +8,15 @@ import {
     useCallback,
   } from 'react';
   import './DrawingBoard.css';
-  import axios from 'axios';
-  import { jwtDecode } from 'jwt-decode';
   // import { Button } from '@chakra-ui/react';
   import DrawingControl from './DrawingControl'
   
-  const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL;
-  
-  const DrawingBoard = forwardRef(({ selectedTool, selectTool, onSaveClick }, ref) => {
+  const DrawingBoard = forwardRef(({ selectedTool, selectTool }, ref) => {
     const canvasRef = useRef(null);
     const colorPaletteRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const lastDrawTimeRef = useRef(0);
     const [showPopup, setShowPopup] = useState(false);
-    const [format, setFormat] = useState('image/png');
-    const [imageId, setImageId] = useState(null); // Track image ID for updates
-    const [loading, setLoading] = useState(false);
     const [textInput, setTextInput] = useState(''); // Text input state
     const [textPosition, setTextPosition] = useState(null); // Track text position
     const [isTyping, setIsTyping] = useState(false); // Manage typing state
@@ -208,48 +201,6 @@ import {
       }
     }, [selectedTool]);
   
-    const saveDrawing = useCallback(() => {
-      setLoading(true);
-      const canvas = canvasRef.current;
-      const getToken = localStorage.getItem('jwttoken');
-      const headers = {
-        Authorization: `Bearer ${getToken}`,
-      };
-    
-      const decodedToken = jwtDecode(getToken);
-      const email = decodedToken.sub;
-    
-      const dataURL = canvas.toDataURL(format); // Convert drawing to base64
-      const dateCreated = new Date(); // Get the current date
-    
-      const requestData = {
-        email: email,
-        drawingBase64: dataURL,
-        datecreated: dateCreated,
-      };
-    
-      const apiUrl = imageId
-        ? `${API_BASE_URL}/api/v2/image/update/${imageId}`
-        : `${API_BASE_URL}/api/v2/saveDrawing`;
-    
-      axios({
-        method: imageId ? 'patch' : 'post',
-        url: apiUrl,
-        data: requestData,
-        headers,
-      })
-        .then((response) => {
-          if (!imageId) {
-            setImageId(response.data); // Save new imageId
-          }
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error('Error saving/updating drawing', error);
-          setLoading(false);
-        });
-    }, [imageId, format]); // Add relevant dependencies here
-
   
     return (
       <>
@@ -270,24 +221,6 @@ import {
             }}
           />
         )}
-        {/* {showPopup && (
-          <div className='justify-center items-center bg-[white] font-semibold' style={{ 
-            position: "absolute", 
-            bottom: "7%", 
-            right: "2%", 
-            zIndex: 1000,
-            width: "10rem",
-            height: "3rem",
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-            display: "flex"}}>
-            <Button onClick={saveDrawing} disabled={loading}>{loading ? (
-      <>
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        Saving...
-      </>
-    ) : imageId ? 'Update Drawing' : 'Save Design'}</Button>
-          </div>
-        )} */}
   
         {selectedTool === 'color' && (
           <DrawingControl
@@ -296,7 +229,7 @@ import {
             onBrushSizeChange={handleBrushSizeChange}
           />
         )}
-        <div className="canvas-container flex h-full w-full justify-center items-center" style={{ borderRadius: "1px solid blac" }}>
+        <div className="canvas-container flex h-full w-full justify-center items-center" style={{ border: "2px solid black", borderRadius: "1px solid blac" }}>
           <canvas onClick={handleCanvasClick} ref={canvasRef} width={1650} height={750} id="drawingCanvas" />
         </div>
       </>
