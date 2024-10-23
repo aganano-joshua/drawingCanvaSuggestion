@@ -24,6 +24,7 @@ const Canvas = () => {
         setStrokes((prevStrokes) => [...prevStrokes, newStroke]);
 
         const ctx = canvasRef.current.getContext('2d');
+        ctx.strokeStyle = 'black'; // Ensure stroke color is set
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
         ctx.lineTo(x, y);
@@ -40,33 +41,7 @@ const Canvas = () => {
     };
 
     const sendStrokes = async () => {
-        try {
-            const response = await fetch('http://localhost:5000/api/strokes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(strokes),
-            });
-            const data = await response.json();
-            console.log('Response from backend:', data);
-            // Optionally render the response strokes on the canvas
-            drawSuggestedStrokes(data);
-        } catch (error) {
-            console.error('Error sending strokes:', error);
-        }
-    };
-
-    const drawSuggestedStrokes = (suggestedStrokes) => {
-        const ctx = canvasRef.current.getContext('2d');
-        ctx.strokeStyle = 'red'; // Color for suggested strokes
-        suggestedStrokes.forEach(({ x1, y1, x2, y2 }) => {
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-            ctx.closePath();
-        });
+        // Your sending logic...
     };
 
     useEffect(() => {
