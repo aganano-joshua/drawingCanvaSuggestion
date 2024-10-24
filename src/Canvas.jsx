@@ -24,6 +24,7 @@ const DrawingBoard = forwardRef(({ selectedTool, selectTool }, ref) => {
     const [brushSize, setBrushSize] = useState(5);
     const [strokeCoordinates, setStrokeCoordinates] = useState([]); // Array to store all stroke coordinates
     const [currentStroke, setCurrentStroke] = useState([]); // Array to store current stroke coordinates
+    const [responseDrawing, setResponseDrawing] = useState(null); 
 
     useImperativeHandle(ref, () => ({
         printCanvas: () => {
@@ -92,17 +93,51 @@ const DrawingBoard = forwardRef(({ selectedTool, selectTool }, ref) => {
             }
         };
 
+        // const stopDrawing = () => {
+        //     setIsDrawing(false);
+        //     context.closePath();
+
+        //     // Log the complete stroke coordinates
+        //     setStrokeCoordinates((prev) => {
+        //         const updatedAllStrokes = [...prev, ...currentStroke]; // Combine with all strokes
+        //         console.log('Stroke Coordinates:', updatedAllStrokes); // Log all stroke coordinates
+        //         return updatedAllStrokes; // Update state with all strokes
+        //     });
+        //     setCurrentStroke([]); // Clear current stroke after finishing
+        // };
+
         const stopDrawing = () => {
             setIsDrawing(false);
             context.closePath();
 
-            // Log the complete stroke coordinates
             setStrokeCoordinates((prev) => {
-                const updatedAllStrokes = [...prev, ...currentStroke]; // Combine with all strokes
-                console.log('Stroke Coordinates:', updatedAllStrokes); // Log all stroke coordinates
-                return updatedAllStrokes; // Update state with all strokes
+                const updatedAllStrokes = [...prev, currentStroke]; // Add current stroke to all strokes
+                console.log('Formatted Strokes:', updatedAllStrokes);
+
+                // Send to API after formatting the strokes
+                const formattedStrokes = currentStroke.map(stroke => [stroke[0], stroke[1]]);
+                const payload = {
+                    stroke: formattedStrokes
+                };
+
+                fetch('http://localhost:5000/suggest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
+                return updatedAllStrokes;
             });
-            setCurrentStroke([]); // Clear current stroke after finishing
+            setCurrentStroke([]); // Clear current stroke
         };
 
         const getPos = (canvas, event) => {
@@ -240,8 +275,47 @@ const DrawingBoard = forwardRef(({ selectedTool, selectTool }, ref) => {
             <div className="canvas-container flex h-full w-full justify-center items-center" style={{ border: "2px solid black", borderRadius: "1px solid black" }}>
                 <canvas onClick={handleCanvasClick} ref={canvasRef} width={1650} height={750} id="drawingCanvas" />
             </div>
+
+            {responseDrawing && (
+                <div className="response-drawing">
+                    <h3>API Response Drawing:</h3>
+                    {/* Render the drawing from the API response */}
+                    <DrawingRenderer strokes={responseDrawing} />
+                </div>
+            )}
         </>
     );
 });
+
+const DrawingRenderer = ({ strokes }) => {
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawings
+
+        // Draw the strokes received from the API
+        context.lineCap = 'round';
+        context.lineWidth = 5; // Adjust line width if necessary
+        context.strokeStyle = 'black'; // Change color as needed
+
+        if (strokes && strokes.length > 0) {
+            context.beginPath();
+            context.moveTo(strokes[0][0], strokes[0][1]); // Start from the first stroke
+
+            for (let i = 1; i < strokes.length; i++) {
+                context.lineTo(strokes[i][0], strokes[i][1]); // Draw line to the next stroke
+            }
+
+            context.stroke(); // Render the strokes
+            context.closePath();
+        }
+    }, [strokes]);
+
+    return (
+        <canvas ref={canvasRef} width={800} height={400} style={{ border: '1px solid black' }} />
+    );
+};
 
 export default DrawingBoard;
